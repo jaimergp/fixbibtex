@@ -27,6 +27,7 @@ import os
 import sys
 from copy import deepcopy
 from time import sleep
+import asyncio
 try:
     from tqdm import tqdm
 except ImportError:
@@ -37,20 +38,28 @@ from habanero import Crossref
 cr = Crossref(mailto=os.environ.get('CROSSREF_MAILTO'))
 
 
-def fix_bibtex(path):
+async def fix_bibtex(path):
     bib = parse_bibfile(path)
-    newbib = deepcopy(bib)
-    for key, entry in tqdm(bib.entries.items(), unit='entry'):
-        ref = find_crossref(entry, key)
+    futures = []
+    loop = asyncio.get_event_loop()
+    pbar = tqdm(total=len(bib.entries), leave=False)
+    for key, entry in bib.entries.items():
+        futures.append(loop.run_in_executor(None, find_crossref, (entry, key, pbar)))
+    for result in await asyncio.gather(*futures):
+        if result is None:
+            continue
+        key, entry, ref = result
         if not ref:
             continue
-        new_entry = new_entry_from_crossref(ref, entry)
-        newbib.entries[key] = new_entry
-        sleep(0.1)
-    return bib, newbib
+        new_entry = update_entry_from_crossref(ref, entry)
+        bib.entries[key] = new_entry
+    pbar.close()
+    return bib
 
 
-def find_crossref(entry, key):
+def find_crossref(entry_and_key):
+    sleep(0.1)
+    entry, key, pbar = entry_and_key
     query = entry.fields['title']
     filters = {}
     if 'issn' in entry.fields:
@@ -61,17 +70,17 @@ def find_crossref(entry, key):
         query += ' ' + str(entry.persons['author'][-1])
     try:
         ref = cr.works(query=query, filter=filters)
+        pbar.update()
     except Exception as e:
         print('! Could not fetch', key, 'due to error:', e)
-        return
-    first = ref['message']['items'][0]
-    if first['score'] < 30:
-        print('! Warning, low search score for entry with key', key)
-    return first
+        pbar.update()
+        return None, None, None
+    if ref['message']['items']:
+        first = ref['message']['items'][0]
+        return key, entry, first
 
 
-def new_entry_from_crossref(ref, old_entry):
-    entry = deepcopy(old_entry)
+def update_entry_from_crossref(ref, entry):
     if 'container-title' in ref:
         entry.fields['journal'] = ref['container-title'][0]
     if 'issue' in ref:
@@ -90,25 +99,34 @@ def new_entry_from_crossref(ref, old_entry):
         entry.fields['doi'] = ref['DOI']
     if 'ISSN' in ref:
         entry.fields['issn'] = ref['ISSN'][0]
-    persons = {'author': []}
-    for author in ref['author']:
-        person = Person('{}, {}'.format(author['family'], author['given']))
-        persons['author'].append(person)
-    entry.persons = persons
+    if 'author' in ref:
+        persons = {'author': []}
+        for author in ref['author']:
+            if 'family' in author:
+                authorname = author['family']
+                if 'given' in author:
+                    authorname += ', ' + author['given']
+                person = Person(authorname)
+                persons['author'].append(person)
+            else:
+                print(ref['author'])
+        if len(entry.persons['author']) == len(persons['author']):
+            entry.persons = persons
     return entry
 
 
 def main(path):
-    oldbib, newbib = fix_bibtex(path)
+    loop = asyncio.get_event_loop()
+    newbib = loop.run_until_complete(fix_bibtex(path))
     basename, ext = os.path.splitext(path)
-    oldbib_path = '{}.old{}'.format(basename, ext)
     newbib_path = '{}.new{}'.format(basename, ext)
-    oldbib.to_file(oldbib_path)
     newbib.to_file(newbib_path)
+    oldbib_path = '{}.old{}'.format(basename, ext)
+    parse_bibfile(path).to_file(oldbib_path)
 
-    print('Patched file has been rewritten in', newbib_path)
-    print('Original file has been rewritten in', oldbib_path)
-    print('Use a diff tool to evaluate changes, like:')
+    print('Patched file:', newbib_path)
+    print('Original file:', oldbib_path)
+    print('Use a diff tool to see changes:')
     print('   colordiff', oldbib_path, newbib_path)
 
 
@@ -116,4 +134,3 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         sys.exit('Usage: python fixbibtex.py your.bib')
     main(sys.argv[1])
-
