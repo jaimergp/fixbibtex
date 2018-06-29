@@ -107,10 +107,11 @@ def update_entry_from_crossref(ref, entry):
                 if 'given' in author:
                     authorname += ', ' + author['given']
                 person = Person(authorname)
-                persons['author'].append(person)
             else:
-                print(ref['author'])
-        if len(entry.persons['author']) == len(persons['author']):
+                # Author is not a person but an organization or similar
+                person = Person(author['name'])
+                persons['author'].append(person)
+        if len(entry.persons.get('author', [])) <= len(persons['author']):
             entry.persons = persons
     return entry
 
