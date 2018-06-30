@@ -128,8 +128,10 @@ def update_entry_from_crossref(ref, entry):
         entry.fields['url'] = ref['URL']
     if 'volume' in ref:
         entry.fields['volume'] = str(ref['volume'])
-    if 'issued' in ref:
-        entry.fields['year'] = str(ref['issued']['date-parts'][0][0])
+    if 'published-print' in ref:  # prioritize print vs online
+        entry.fields['year'] = str(ref['published-print']['date-parts'][0][0])
+    elif 'published-online' in ref:
+        entry.fields['year'] = str(ref['published-online']['date-parts'][0][0])
     if 'DOI' in ref:
         entry.fields['doi'] = ref['DOI']
     if 'ISSN' in ref:
