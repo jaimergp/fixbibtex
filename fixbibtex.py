@@ -37,6 +37,62 @@ from habanero import Crossref
 cr = Crossref(mailto=os.environ.get('CROSSREF_MAILTO'))
 
 MAX_POOL_WORKERS = int(os.environ.get('FIXBIBTEX_WORKERS', '5'))
+COLORS = {
+    'END': '\33[0m',
+    'BOLD': '\33[1m',
+    'ITALIC': '\33[3m',
+    'URL': '\33[4m',
+    'BLINK': '\33[5m',
+    'BLINK2': '\33[6m',
+    'SELECTED': '\33[7m',
+
+    'BLACK': '\33[30m',
+    'RED': '\33[31m',
+    'GREEN': '\33[32m',
+    'YELLOW': '\33[33m',
+    'BLUE': '\33[34m',
+    'VIOLET': '\33[35m',
+    'BEIGE': '\33[36m',
+    'WHITE': '\33[37m',
+
+    'BLACKBG': '\33[40m',
+    'REDBG': '\33[41m',
+    'GREENBG': '\33[42m',
+    'YELLOWBG': '\33[43m',
+    'BLUEBG': '\33[44m',
+    'VIOLETBG': '\33[45m',
+    'BEIGEBG': '\33[46m',
+    'WHITEBG': '\33[47m',
+
+    'GREY': '\33[90m',
+    'RED2': '\33[91m',
+    'GREEN2': '\33[92m',
+    'YELLOW2': '\33[93m',
+    'BLUE2': '\33[94m',
+    'VIOLET2': '\33[95m',
+    'BEIGE2': '\33[96m',
+    'WHITE2': '\33[97m',
+
+    'GREYBG': '\33[100m',
+    'REDBG2': '\33[101m',
+    'GREENBG2': '\33[102m',
+    'YELLOWBG2': '\33[103m',
+    'BLUEBG2': '\33[104m',
+    'VIOLETBG2': '\33[105m',
+    'BEIGEBG2': '\33[106m',
+    'WHITEBG2': '\33[107m',
+}
+
+
+def cprint(*args, color=None, **kwargs):
+    if color and color.upper() in COLORS:
+        print(COLORS[color.upper()], end='')
+        end = kwargs.pop('end', '\n')
+        print(*args, end='', **kwargs)
+        print(COLORS['END'], end=end)
+    else:
+        print(*args, **kwargs)
+
 
 async def fix_bibtex(path):
     bib = parse_bibfile(path)
@@ -69,14 +125,14 @@ async def fix_bibtex(path):
                         new_entry_fb = update_entry_from_crossref(fb_ref, entry)
                         similarity = similar(title_in_bibtex, new_entry_fb.fields['title'])
                         if similarity <  0.75:
-                            print('  Not fixed... :( Similarity with DOI: {:.2f}'.format(similarity))
+                            cprint('  Not fixed... :( Similarity with DOI: {:.2f}'.format(similarity), color='red')
                         else:
-                            print('  Fixed! Similarity with DOI: {:.2f}'.format(similarity))
+                            cprint('  Fixed! Similarity with DOI: {:.2f}'.format(similarity), color='green')
                             new_entry = new_entry_fb
                     else:
-                        print('  Wrong DOI!')
+                        cprint('  Wrong DOI!', color='red')
                 else:
-                    print('  No DOI available for fallback search.')
+                    cprint('  No DOI available for fallback search.', color='red')
             bib.entries[key] = new_entry
         pbar.close()
     if len(bib.entries) != len(futures):
