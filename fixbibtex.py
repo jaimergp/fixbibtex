@@ -28,6 +28,7 @@ import os
 import sys
 from copy import copy, deepcopy
 from time import sleep
+import argparse
 import asyncio
 import concurrent.futures
 from difflib import SequenceMatcher
@@ -238,7 +239,12 @@ def main(path):
     print('   colordiff', oldbib_path, newbib_path)
 
 
+def cli():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', metavar='FILE', help="BibTex file")
+    args = parser.parse_args()
+    main(args.path)
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        sys.exit('Usage: python fixbibtex.py your.bib')
-    main(sys.argv[1])
+    cli()
