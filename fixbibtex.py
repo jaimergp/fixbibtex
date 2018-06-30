@@ -42,10 +42,15 @@ async def fix_bibtex(path):
     bib = parse_bibfile(path)
     futures = []
     loop = asyncio.get_event_loop()
-    pbar = tqdm(total=len(bib.entries), leave=False)
+    non_article_keys = []
+    pbar = tqdm(leave=False)
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_POOL_WORKERS) as executor:
         for key, entry in bib.entries.items():
+            if entry.type != 'article' or 'rxiv.org' in entry.fields.get('url', '') :  # skip books, chapters, etc (for now)
+                non_article_keys.append(key)
+                continue
             futures.append(loop.run_in_executor(executor, find_crossref, (entry, key, pbar)))
+        pbar.total = len(futures)
         for result in await asyncio.gather(*futures):
             if result is None:
                 continue
@@ -56,7 +61,7 @@ async def fix_bibtex(path):
             title_in_bibtex = entry.fields.get('title', '')
             new_entry = update_entry_from_crossref(ref, entry)
             if getattr(new_entry, 'similarity', 0) < 0.75:  # Fallback with DOI
-                print('! `{}` has low similarity ({:.2f})...'.format(key, new_entry.similarity))
+                print('\n! `{}` has low similarity ({:.2f})...'.format(key, new_entry.similarity))
                 if doi_in_bibtex:
                     print('  Searching for DOI `{}`...'.format(doi_in_bibtex))
                     fb_ref = find_crossref_doi(doi_in_bibtex)
@@ -74,6 +79,10 @@ async def fix_bibtex(path):
                     print('  No DOI available for fallback search.')
             bib.entries[key] = new_entry
         pbar.close()
+    if len(bib.entries) != len(futures):
+        print('\n! Skipped', len(bib.entries) - len(futures),
+              'non-article pieces (book chapters, pre-prints...):\n ',
+              '\n  '.join(non_article_keys))
     return bib
 
 
@@ -167,7 +176,7 @@ def main(path):
     oldbib_path = '{}.old{}'.format(basename, ext)
     parse_bibfile(path).to_file(oldbib_path)
 
-    print('Patched file:', newbib_path)
+    print('\nPatched file:', newbib_path)
     print('Original file:', oldbib_path)
     print('Use a diff tool to see changes:')
     print('   colordiff', oldbib_path, newbib_path)
