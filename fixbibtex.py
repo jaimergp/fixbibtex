@@ -187,7 +187,7 @@ def update_entry_from_crossref(ref, entry):
         entry.fields['number'] = str(ref['issue'])
     if 'page' in ref:
         entry.fields['pages'] = str(ref['page']).replace('-', '--')
-    if 'title' in ref:
+    if 'title' in ref and ref['title']:
         entry.similarity  = similar(entry.fields['title'], ref['title'][0])
         entry.fields['title'] = ref['title'][0]
     if 'URL' in ref:
