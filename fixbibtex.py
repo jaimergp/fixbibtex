@@ -33,6 +33,7 @@ import asyncio
 import concurrent.futures
 from difflib import SequenceMatcher
 from tqdm import tqdm
+from pybtex.errors import set_strict_mode
 from pybtex.database import parse_file as parse_bibfile, Person
 from habanero import Crossref
 cr = Crossref(mailto=os.environ.get('CROSSREF_MAILTO'))
@@ -224,7 +225,8 @@ def similar(a, b):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
-def main(path):
+def main(path, strict=False):
+    set_strict_mode(strict)
     loop = asyncio.get_event_loop()
     newbib = loop.run_until_complete(fix_bibtex(path))
     basename, ext = os.path.splitext(path)
@@ -242,8 +244,10 @@ def main(path):
 def cli():
     parser = argparse.ArgumentParser()
     parser.add_argument('path', metavar='FILE', help="BibTex file")
+    parser.add_argument('--strict', action='store_true', default=False,
+                        help='Transforms warnings into errors (off by default).')
     args = parser.parse_args()
-    main(args.path)
+    main(args.path, args.strict)
 
 
 if __name__ == '__main__':
