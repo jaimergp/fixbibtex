@@ -28,6 +28,7 @@ import os
 import sys
 from copy import copy, deepcopy
 from time import sleep
+from distutils.spawn import find_executable
 import argparse
 import asyncio
 import concurrent.futures
@@ -37,6 +38,7 @@ from pybtex.errors import set_strict_mode
 from pybtex.database import parse_file as parse_bibfile, Person
 from habanero import Crossref
 cr = Crossref(mailto=os.environ.get('CROSSREF_MAILTO'))
+
 
 MAX_POOL_WORKERS = int(os.environ.get('FIXBIBTEX_WORKERS', '5'))
 COLORS = {
@@ -225,6 +227,12 @@ def similar(a, b):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
+def _difftool():
+    for tool in 'code --diff', 'colordiff', 'diff':
+        if find_executable(tool.split()[0]):
+            return tool
+    return '<difftool>'
+
 def main(path, strict=False):
     set_strict_mode(strict)
     loop = asyncio.get_event_loop()
@@ -238,7 +246,7 @@ def main(path, strict=False):
     print('\nPatched file:', newbib_path)
     print('Original file:', oldbib_path)
     print('Use a diff tool to see changes:')
-    print('   colordiff', oldbib_path, newbib_path)
+    print('  ', _difftool(), oldbib_path, newbib_path)
 
 
 def cli():
