@@ -16,10 +16,10 @@ I will be tagging new releases as more features and fixes are added. There will 
 
 `pip` will handle them, but in case you want to install them manually, `fixbibtex`  relies on:
 
-- Python 3.5+. Needed for `async` features.
-- `pybtex`: BibTeX parser and writer.
-- `habanero`: CrossRef API.
-- `tqdm`: Progress bar.
+- Python 3.5+: Needed for `async` features.
+- [`pybtex`](https://pybtex.org/): BibTeX parser and writer.
+- [`habanero`](https://github.com/sckott/habanero): CrossRef API.
+- [`tqdm`](https://tqdm.github.io/): Progress bar.
 
 
 # Usage
@@ -39,7 +39,7 @@ I recommend using `code --diff *.old.bib *.new.bib` for a better experience, but
 
 ## About CrossRef API usage
 
-The excellent [CrossRef]() project offers it API free of charge for everybody, without keys, tokens, OAuth... It is truly mind-blowing! Such a good service must be respected, so please do not try to modify the code to overcome the limitations imposed. CrossRef devs are very nice, and if you voluntarily include your email address in the requests, they will grant you access to a priority queue. That way, if you accidentally misuse the service, they can notify you about the mistake.
+The excellent [CrossRef](https://www.crossref.org/) project offers it API free of charge for everybody, without keys, tokens, OAuth... It is truly mind-blowing! Such a good service must be respected, so please do not try to modify the code to overcome the limitations imposed. CrossRef devs are very nice, and if you voluntarily include your email address in the requests, they will grant you access to a priority queue. That way, if you accidentally misuse the service, they can notify you about the mistake.
 
 Set an environment variable `CROSSREF_MAILTO` to a valid email address to use this feature with `fixbibtex`.
 
