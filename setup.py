@@ -5,6 +5,12 @@ from __future__ import print_function
 from setuptools import setup, find_packages
 import os
 import io
+import sys
+
+
+if sys.version_info < (3, 5):
+    raise RuntimeError('fixbibtex requires Python 3.5+')
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -41,6 +47,7 @@ setup(
         'Operating System :: OS Independent',
     ],
     install_requires='pybtex habanero tqdm'.split(),
+    python_requires=">=3.5",
     entry_points='''
         [console_scripts]
         fixbibtex=fixbibtex:cli

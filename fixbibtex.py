@@ -26,6 +26,8 @@ TODO
 from __future__ import print_function
 import os
 import sys
+if sys.version_info < (3, 5):
+    raise RuntimeError('fixbibtex requires Python 3.5+')
 from copy import copy, deepcopy
 from time import sleep
 from distutils.spawn import find_executable
